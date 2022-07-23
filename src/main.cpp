@@ -13,7 +13,6 @@ void drawpixel(SDL_Renderer* renderer, int x , int y) {
 	SDL_RenderDrawPoint(renderer, x, y);
 }
 void drawline(SDL_Renderer* renderer, int x1,int y1, int x2 , int y2) {
-	
 	SDL_RenderDrawLine(renderer, x1, y1, x2, y2);
 }
 
@@ -243,27 +242,58 @@ int main(int argc, char** argv) {
 
 	mesh meshCube;
 	mat4x4 matProj;
+	float fYaw = 0.0f;
+	bool drawFlag = true;
+	rgba c;
 
 	vec3d vCamera = { 0,0,0 };
 	vec3d vlookDir;
 
-	meshCube.LoadFromObjectFile("VideoShip.obj");
+	meshCube.LoadFromObjectFile("sastoTap.obj");
 	float fTheta = 0;
 
 	// Projection Matrix
 	matProj = Matrix_MakeProjection(90.0f, (float)SCREEN_HEIGHT / (float)SCREEN_WIDTH, 0.1f, 1000.0f);
-
 	while (isApplicationRunning) {
 		if (SDL_PollEvent(&event) && event.type == SDL_QUIT)
 			isApplicationRunning = false;
 		if (SDL_PollEvent(&event)) {
+			vec3d vForward = Vector_Mul(vlookDir, 8.0f);
 			switch (event.type) {
 			case SDL_KEYDOWN:
 				switch (event.key.keysym.sym) {
-				case SDLK_w:
-
 				case SDLK_UP:
+					vCamera.y += 8.0f;
+					drawFlag = true;
 						break;
+				case SDLK_DOWN:
+					vCamera.y -= 8.0f;
+					drawFlag = true;
+					break;
+				case SDLK_LEFT:
+					vCamera.x -= 8.0f;
+					drawFlag = true;
+					break;
+				case SDLK_RIGHT:
+					vCamera.x += 8.0f;
+					drawFlag = true;
+					break;
+				case SDLK_a:
+					fYaw -= 1.0f;
+					drawFlag = true;
+					break;
+				case SDLK_d:
+					fYaw += 1.0f;
+					drawFlag = true;
+					break;
+				case SDLK_w:
+					vCamera = Vector_Add(vCamera, vForward);
+					drawFlag = true;
+					break;
+				case SDLK_s:
+					vCamera = Vector_Sub(vCamera, vForward);
+					drawFlag = true;
+					break;
 				default:
 					break;
 				}
@@ -273,11 +303,10 @@ int main(int argc, char** argv) {
 				break;
 			}
 		}
+		if (drawFlag) {
+
 		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 		SDL_RenderClear(renderer);
-
-		
-
 		// Set up rotation matrices
 		mat4x4 matRotZ, matRotX;
 		//fTheta += 1.0f * 0.05;
@@ -292,9 +321,12 @@ int main(int argc, char** argv) {
 		matWorld = Matrix_MultiplyMatrix(matRotZ, matRotX); // Transform by rotation
 		matWorld = Matrix_MultiplyMatrix(matWorld, matTrans); // Transform by translation
 
-		vlookDir = { 0,0,1 };
+		
 		vec3d vUp = { 0,1,0 };
-		vec3d vTarget = Vector_Add(vCamera, vlookDir);
+		vec3d vTarget = { 0,0,1 };
+		mat4x4 matCameraRot = Matrix_MakeRotationY(fYaw);
+		vlookDir = Matrix_MultiplyVector(matCameraRot, vTarget);
+		vTarget = Vector_Add(vCamera, vlookDir);
 
 		mat4x4 matCamera = Matrix_PointAt(vCamera, vTarget, vUp);
 
@@ -341,38 +373,49 @@ int main(int argc, char** argv) {
 				// How similar is normal to light direction
 				float dp = normal.x * light_direction.x + normal.y * light_direction.y + normal.z * light_direction.z;
 
-				rgba c = GetColor(dp);
+				c = GetColor(dp);
 
 				triViewed.p[0] = Matrix_MultiplyVector(matView, triTransformed.p[0]);
 				triViewed.p[1] = Matrix_MultiplyVector(matView, triTransformed.p[1]);
 				triViewed.p[2] = Matrix_MultiplyVector(matView, triTransformed.p[2]);
-				
-				// Project triangles from 3D --> 2D
-				triProjected.p[0] = Matrix_MultiplyVector(matProj, triViewed.p[0]);
-				triProjected.p[1] = Matrix_MultiplyVector(matProj, triViewed.p[1]);
-				triProjected.p[2] = Matrix_MultiplyVector(matProj, triViewed.p[2]);
 
-				// do this normalizing
-				triProjected.p[0] = Vector_Div(triProjected.p[0], triProjected.p[0].w);
-				triProjected.p[1] = Vector_Div(triProjected.p[1], triProjected.p[1].w);
-				triProjected.p[2] = Vector_Div(triProjected.p[2], triProjected.p[2].w);
+				// Clip Viewed Triangle against near plane, this could form two additional
+				// additional triangles. 
+				int nClippedTriangles = 0;
+				triangle clipped[2];
+				nClippedTriangles = Triangle_ClipAgainstPlane({ 0.0f, 0.0f, 0.1f }, { 0.0f, 0.0f, 1.0f }, triViewed, clipped[0], clipped[1]);
 
-				// Offset verts into visible normalised space
-				vec3d vOffsetView = { 1,1,0 };
-				triProjected.p[0] = Vector_Add(triProjected.p[0], vOffsetView);
-				triProjected.p[1] = Vector_Add(triProjected.p[1], vOffsetView);
-				triProjected.p[2] = Vector_Add(triProjected.p[2], vOffsetView);
-				triProjected.p[0].x *= 0.5f * (float)SCREEN_WIDTH;
-				triProjected.p[0].y *= 0.5f * (float)SCREEN_HEIGHT;
-				triProjected.p[1].x *= 0.5f * (float)SCREEN_WIDTH;
-				triProjected.p[1].y *= 0.5f * (float)SCREEN_HEIGHT;
-				triProjected.p[2].x *= 0.5f * (float)SCREEN_WIDTH;
-				triProjected.p[2].y *= 0.5f * (float)SCREEN_HEIGHT;
+				// We may end up with multiple triangles form the clip, so project as
+				// required
+				for (int n = 0; n < nClippedTriangles; n++)
+				{
+					// Project triangles from 3D --> 2D
+					triProjected.p[0] = Matrix_MultiplyVector(matProj, clipped[n].p[0]);
+					triProjected.p[1] = Matrix_MultiplyVector(matProj, clipped[n].p[1]);
+					triProjected.p[2] = Matrix_MultiplyVector(matProj, clipped[n].p[2]);
 
-				// Store triangle for sorting
-				vecTrianglesToRaster.push_back(triProjected);
+					// do this normalizing
+					triProjected.p[0] = Vector_Div(triProjected.p[0], triProjected.p[0].w);
+					triProjected.p[1] = Vector_Div(triProjected.p[1], triProjected.p[1].w);
+					triProjected.p[2] = Vector_Div(triProjected.p[2], triProjected.p[2].w);
+
+					// Offset verts into visible normalised space
+					vec3d vOffsetView = { 1,1,0 };
+					triProjected.p[0] = Vector_Add(triProjected.p[0], vOffsetView);
+					triProjected.p[1] = Vector_Add(triProjected.p[1], vOffsetView);
+					triProjected.p[2] = Vector_Add(triProjected.p[2], vOffsetView);
+					triProjected.p[0].x *= 0.5f * (float)SCREEN_WIDTH;
+					triProjected.p[0].y *= 0.5f * (float)SCREEN_HEIGHT;
+					triProjected.p[1].x *= 0.5f * (float)SCREEN_WIDTH;
+					triProjected.p[1].y *= 0.5f * (float)SCREEN_HEIGHT;
+					triProjected.p[2].x *= 0.5f * (float)SCREEN_WIDTH;
+					triProjected.p[2].y *= 0.5f * (float)SCREEN_HEIGHT;
+
+					// Store triangle for sorting
+					vecTrianglesToRaster.push_back(triProjected);
+
+				}
 			}
-		
 		}
 
 		// Sort triangles from back to front
@@ -383,18 +426,18 @@ int main(int argc, char** argv) {
 				return z1 > z2;
 			});
 
+		
+			for (auto& triProjected : vecTrianglesToRaster)
+			{
+				// Rasterize triangle
+				SDL_SetRenderDrawColor(renderer, 255, 0, 255, 255);
+				FillTriangle(renderer, triProjected.p[0].x, triProjected.p[0].y, triProjected.p[1].x, triProjected.p[1].y,
+					triProjected.p[2].x, triProjected.p[2].y);
 
-		for (auto& triProjected : vecTrianglesToRaster)
-		{
-			// Rasterize triangle
-			SDL_SetRenderDrawColor(renderer, 255, 0, 255, 255);
-			FillTriangle(renderer, triProjected.p[0].x, triProjected.p[0].y, triProjected.p[1].x, triProjected.p[1].y,
-				triProjected.p[2].x, triProjected.p[2].y);
+				drawFlag = false;
+				SDL_RenderPresent(renderer);
 
-
-			SDL_RenderPresent(renderer);
-			SDL_Delay(4);
-
+			}
 		}
 		
 	}
