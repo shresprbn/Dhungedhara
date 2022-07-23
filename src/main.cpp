@@ -332,7 +332,6 @@ int main(int argc, char** argv) {
 					float dp = normal.x * light_direction.x + normal.y * light_direction.y + normal.z * light_direction.z;
 
 					c = GetColor(dp);
-					std::cout << c.r<<"  " << c.g << "  " << c.b << "  " << c.a << std::endl;
 
 					triViewed.p[0] = Matrix_MultiplyVector(matView, triTransformed.p[0]);
 					triViewed.p[1] = Matrix_MultiplyVector(matView, triTransformed.p[1]);
@@ -394,7 +393,6 @@ int main(int argc, char** argv) {
 
 				drawFlag = false;
 				SDL_RenderPresent(renderer);
-				std::cout << vCamera.x << " " << vCamera.y << " " << vCamera.z << std::endl;
 			}
 		}
 
