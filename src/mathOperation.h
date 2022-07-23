@@ -1,7 +1,7 @@
 #include <fstream>
 #include <sstream>
 #include <algorithm>
-#include <SDL2/SDL.h>
+#include <SDL.h>
 #include <iostream>
 #include <vector>
 #include <cmath>
@@ -20,6 +20,7 @@ struct vec3d
 struct triangle
 {
 	vec3d p[3];
+	rgba col;
 };
 
 struct mesh
@@ -356,6 +357,5 @@ int Triangle_ClipAgainstPlane(vec3d plane_p, vec3d plane_n, triangle& in_tri, tr
 
 		return 2; // Return two newly formed triangles which form a quad
 	}
-	return 0;
 }
 

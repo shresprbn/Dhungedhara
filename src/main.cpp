@@ -199,6 +199,7 @@ int main(int argc, char** argv) {
 
 
 	mesh meshCube;
+	mesh wall;
 	mat4x4 matProj;
 	float fYaw = 1.0f;
 	bool drawFlag = true;
@@ -207,7 +208,8 @@ int main(int argc, char** argv) {
 	vec3d vCamera = { 0,0,0 };
 	vec3d vlookDir;
 
-	meshCube.LoadFromObjectFile("sastoTap.obj");
+	meshCube.LoadFromObjectFile("Dhungedhara1.obj");
+	wall.LoadFromObjectFile("DhungedharaWall.obj");
 	float fTheta = 0;
 
 	// Projection Matrix
@@ -325,7 +327,7 @@ int main(int argc, char** argv) {
 				if (Vector_DotProduct(normal, vCameraRay) < 0.0f) {
 
 					// Illumination
-					vec3d light_direction = { 0.0f, 1.0f, -1.0f };
+					vec3d light_direction = { 5.0f, 1.0f, -1.0f };
 					light_direction = Vector_Normalise(light_direction);
 
 					// How similar is normal to light direction
