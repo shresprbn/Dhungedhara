@@ -119,10 +119,104 @@ int main(int argc, char** argv) {
 
 
 			// Store triagles for rastering later
+			std::vector<triangle> vecTrianglesToRasterGround;
 			std::vector<triangle> vecTrianglesToRaster;
 			std::vector<triangle> vecTrianglesToRasterWall;
 			std::vector<triangle> vecTrianglesToRasterWater;
 			
+			// Draw Ground-------------------------------------------------------------------------------------
+			for (auto tri : ground.tris)
+			{
+				triangle triProjected, triTransformed, triViewed;
+
+				// World Matrix Transform
+				triTransformed.p[0] = Matrix_MultiplyVector(matWorld, tri.p[0]);
+				triTransformed.p[1] = Matrix_MultiplyVector(matWorld, tri.p[1]);
+				triTransformed.p[2] = Matrix_MultiplyVector(matWorld, tri.p[2]);
+
+				// Calculate triangle Normal
+				vec3d normal, line1, line2;
+
+				// Get lines either side of triangle
+				line1 = Vector_Sub(triTransformed.p[1], triTransformed.p[0]);
+				line2 = Vector_Sub(triTransformed.p[2], triTransformed.p[0]);
+
+				// Take cross product of lines to get normal to triangle surface
+				normal = Vector_CrossProduct(line1, line2);
+
+				// You normally need to normalise a normal!
+				normal = Vector_Normalise(normal);
+
+				// Get Ray from triangle to camera
+				vec3d vCameraRay = Vector_Sub(triTransformed.p[0], vCamera);
+
+				// If ray is aligned with normal, then triangle is visible
+				
+				// if (Vector_DotProduct(normal, vCameraRay) < 0.0f) {
+
+
+
+					triViewed.p[0] = Matrix_MultiplyVector(matView, triTransformed.p[0]);
+					triViewed.p[1] = Matrix_MultiplyVector(matView, triTransformed.p[1]);
+					triViewed.p[2] = Matrix_MultiplyVector(matView, triTransformed.p[2]);
+					triViewed.col = { 180,125,90 };
+					// Clip Viewed Triangle against near plane, this could form two additional
+					// additional triangles. 
+					int nClippedTriangles = 0;
+					triangle clipped[2];
+					nClippedTriangles = Triangle_ClipAgainstPlane({ 0.0f, 0.0f, 0.1f }, { 0.0f, 0.0f, 1.0f }, triViewed, clipped[0], clipped[1]);
+
+					// We may end up with multiple triangles form the clip, so project as
+					// required
+					for (int n = 0; n < nClippedTriangles; n++)
+					{
+						// Project triangles from 3D --> 2D
+						triProjected.p[0] = Matrix_MultiplyVector(matProj, clipped[n].p[0]);
+						triProjected.p[1] = Matrix_MultiplyVector(matProj, clipped[n].p[1]);
+						triProjected.p[2] = Matrix_MultiplyVector(matProj, clipped[n].p[2]);
+
+						// do this normalizing
+						triProjected.p[0] = Vector_Div(triProjected.p[0], triProjected.p[0].w);
+						triProjected.p[1] = Vector_Div(triProjected.p[1], triProjected.p[1].w);
+						triProjected.p[2] = Vector_Div(triProjected.p[2], triProjected.p[2].w);
+
+						// Offset verts into visible normalised space
+						vec3d vOffsetView = { 1,1,0 };
+						triProjected.p[0] = Vector_Add(triProjected.p[0], vOffsetView);
+						triProjected.p[1] = Vector_Add(triProjected.p[1], vOffsetView);
+						triProjected.p[2] = Vector_Add(triProjected.p[2], vOffsetView);
+						triProjected.p[0].x *= 0.5f * (float)SCREEN_WIDTH;
+						triProjected.p[0].y *= 0.5f * (float)SCREEN_HEIGHT;
+						triProjected.p[1].x *= 0.5f * (float)SCREEN_WIDTH;
+						triProjected.p[1].y *= 0.5f * (float)SCREEN_HEIGHT;
+						triProjected.p[2].x *= 0.5f * (float)SCREEN_WIDTH;
+						triProjected.p[2].y *= 0.5f * (float)SCREEN_HEIGHT;
+
+						// Store triangle for sorting
+						vecTrianglesToRasterGround.push_back(triProjected);
+
+					}
+				// }
+			}
+			// Sort triangles from back to front
+			sort(vecTrianglesToRasterGround.begin(), vecTrianglesToRasterGround.end(), [](triangle& t1, triangle& t2)
+				{
+					float z1 = (t1.p[0].z + t1.p[1].z + t1.p[2].z) / 3.0f;
+					float z2 = (t2.p[0].z + t2.p[1].z + t2.p[2].z) / 3.0f;
+					return z1 > z2;
+				});
+			for (auto& triProjected : vecTrianglesToRasterGround)
+			{
+				rgba a = { 64,97,33,255 };
+				//Rasterize the triangle
+				FillTriangle(renderer, triProjected.p[0].x, triProjected.p[0].y, triProjected.p[1].x, triProjected.p[1].y,
+					triProjected.p[2].x, triProjected.p[2].y, a);
+
+				drawFlag = false;
+				SDL_RenderPresent(renderer);
+			}
+
+			// Draw Wall------------------------------------------------------------------------------------
 			for (auto tri : wall.tris)
 			{
 				triangle triProjected, triTransformed, triViewed;
@@ -213,7 +307,7 @@ int main(int argc, char** argv) {
 				SDL_RenderPresent(renderer);
 			}
 			
-			// Draw Dhara
+			// Draw Dhara-----------------------------------------------------------------------------------
 			for (auto tri : meshCube.tris)
 			{
 				triangle triProjected, triTransformed, triViewed;
@@ -310,7 +404,7 @@ int main(int argc, char** argv) {
 				SDL_RenderPresent(renderer);
 			}
 
-			// Draw Water
+			// Draw Water-----------------------------------------------------------------------------------
 			for (auto tri : water.tris)
 			{
 				triangle triProjected, triTransformed, triViewed;
@@ -392,7 +486,7 @@ int main(int argc, char** argv) {
 				});
 			for (auto& triProjected : vecTrianglesToRasterWater)
 			{
-				rgba a = { 140,200,250,255 };
+				rgba a = { 65,104,154,255 };
 				//Rasterize the triangle
 				FillTriangle(renderer, triProjected.p[0].x, triProjected.p[0].y, triProjected.p[1].x, triProjected.p[1].y,
 					triProjected.p[2].x, triProjected.p[2].y, a);
@@ -401,8 +495,6 @@ int main(int argc, char** argv) {
 				SDL_RenderPresent(renderer);
 			}
 
-
-		
 		}
 
 	}
