@@ -22,51 +22,7 @@ void DrawTriangle(SDL_Renderer* renderer, int x1, int y1, int x2, int y2, int x3
 	drawline(renderer, x1, y1, x3, y3);
 
 }
-void fillTriangle(SDL_Renderer* renderer, int x1, int y1, int x2, int y2, int x3, int y3){
-	//get length
-	float d1 = sqrt(((y2 - y1) * (y2 - y1)) + ((x2 - x1) * (x2 - x1)));
-	float d2 = sqrt(((y3 - y2) * (y3 - y2)) + ((x3 - x2) * (x3 - x2)));
-	float d3 = sqrt(((y1 - y3) * (y1 - y3)) + ((x1 - x3) * (x1 - x3)));
-	if (((d1 < d2) || (d1 = d2)) && ((d1 < d2) || (d1 = d2))) {
-		int tx = x1;
-		int ty = y1;
-		float vx = (x2 - x1) / d1;
-		float vy = (y2 - y1) / d1;
-		int counter = 0;
-		while (counter < d1) {
-			drawline(renderer,x3, y3, tx, ty);
-			tx = tx + vx;
-			ty = ty + vy;
-			counter++;
-		}
-	}
-	else if ((d2 < d3) || (d2 = d3)) {
-		int tx = x2;
-		int ty = y2;
-		float vx = (x3 - x2) / d2;
-		float vy = (y3 - y2) / d2;
-		int counter = 0;
-		while (counter < d1) {
-			drawline(renderer,x1, y1, tx, ty);
-			tx = tx + vx;
-			ty = ty + vy;
-			counter++;
-		}
-	}
-	else {
-		int tx = x3;
-		int ty = y3;
-		float vx = (x1 - x3) / d3;
-		float vy = (y1 - y3) / d3;
-		int counter = 0;
-		while (counter < d1) {
-			drawline(renderer,x2, y2, tx, ty);
-			tx = tx + vx;
-			ty = ty + vy;
-			counter++;
-		}
-	}
-}
+
 void FillTriangle(SDL_Renderer* renderer,int x1, int y1, int x2, int y2, int x3, int y3)
 {
 	auto SWAP = [](int& x, int& y) { int t = x; x = y; y = t; };
@@ -249,7 +205,7 @@ int main(int argc, char** argv) {
 	vec3d vCamera = { 0,0,0 };
 	vec3d vlookDir;
 
-	meshCube.LoadFromObjectFile("sastoTap.obj");
+	meshCube.LoadFromObjectFile("dhara.obj");
 	float fTheta = 0;
 
 	// Projection Matrix
@@ -322,7 +278,7 @@ int main(int argc, char** argv) {
 		matWorld = Matrix_MultiplyMatrix(matWorld, matTrans); // Transform by translation
 
 		
-		vec3d vUp = { 0,1,0 };
+		vec3d vUp = { 0,-1,0 };
 		vec3d vTarget = { 0,0,1 };
 		mat4x4 matCameraRot = Matrix_MakeRotationY(fYaw);
 		vlookDir = Matrix_MultiplyVector(matCameraRot, vTarget);

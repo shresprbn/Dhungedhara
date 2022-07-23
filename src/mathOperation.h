@@ -356,5 +356,6 @@ int Triangle_ClipAgainstPlane(vec3d plane_p, vec3d plane_n, triangle& in_tri, tr
 
 		return 2; // Return two newly formed triangles which form a quad
 	}
+	return 0;
 }
 
