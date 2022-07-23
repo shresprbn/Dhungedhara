@@ -1,14 +1,10 @@
 #include <fstream>
 #include <sstream>
 #include <algorithm>
-#include <SDL.h>
 #include <iostream>
 #include <vector>
 #include <cmath>
 
-struct rgba {
-	int r, g, b, a;
-};
 struct vec3d
 {
 	float x = 0;
@@ -357,5 +353,6 @@ int Triangle_ClipAgainstPlane(vec3d plane_p, vec3d plane_n, triangle& in_tri, tr
 
 		return 2; // Return two newly formed triangles which form a quad
 	}
+	return 0;
 }
 
