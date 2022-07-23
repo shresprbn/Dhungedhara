@@ -9,9 +9,6 @@ SDL_Renderer* renderer;
 SDL_Event event;
 bool isApplicationRunning = true;
 
-
-
-
 void drawpixel(SDL_Renderer* renderer, int x , int y) {
 	SDL_RenderDrawPoint(renderer, x, y);
 }
@@ -242,11 +239,13 @@ int main(int argc, char** argv) {
 	SDL_CreateWindowAndRenderer(SCREEN_WIDTH, SCREEN_WIDTH, 0, &window, &renderer);
 	SDL_SetRenderDrawColor(renderer, 125, 200, 125, 255);
 	SDL_RenderClear(renderer);
+	
 
 	mesh meshCube;
 	mat4x4 matProj;
 
 	vec3d vCamera = { 0,0,0 };
+	vec3d vlookDir;
 
 	meshCube.LoadFromObjectFile("VideoShip.obj");
 	float fTheta = 0;
@@ -257,12 +256,31 @@ int main(int argc, char** argv) {
 	while (isApplicationRunning) {
 		if (SDL_PollEvent(&event) && event.type == SDL_QUIT)
 			isApplicationRunning = false;
+		if (SDL_PollEvent(&event)) {
+			switch (event.type) {
+			case SDL_KEYDOWN:
+				switch (event.key.keysym.sym) {
+				case SDLK_w:
 
+				case SDLK_UP:
+						break;
+				default:
+					break;
+				}
+
+				break;
+			default:
+				break;
+			}
+		}
 		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 		SDL_RenderClear(renderer);
+
+		
+
 		// Set up rotation matrices
 		mat4x4 matRotZ, matRotX;
-		fTheta += 1.0f * 0.01;
+		//fTheta += 1.0f * 0.05;
 		matRotZ = Matrix_MakeRotationZ(fTheta * 0.5f);
 		matRotX = Matrix_MakeRotationX(fTheta);
 
@@ -273,6 +291,15 @@ int main(int argc, char** argv) {
 		matWorld = Matrix_MakeIdentity();	// Form World Matrix
 		matWorld = Matrix_MultiplyMatrix(matRotZ, matRotX); // Transform by rotation
 		matWorld = Matrix_MultiplyMatrix(matWorld, matTrans); // Transform by translation
+
+		vlookDir = { 0,0,1 };
+		vec3d vUp = { 0,1,0 };
+		vec3d vTarget = Vector_Add(vCamera, vlookDir);
+
+		mat4x4 matCamera = Matrix_PointAt(vCamera, vTarget, vUp);
+
+		// Make view matrix from camera
+		mat4x4 matView = Matrix_QuickInverse(matCamera);
 
 
 		// Store triagles for rastering later
@@ -312,15 +339,18 @@ int main(int argc, char** argv) {
 				light_direction = Vector_Normalise(light_direction);
 
 				// How similar is normal to light direction
-				//float dp = normal.x * light_direction.x + normal.y * light_direction.y + normal.z * light_direction.z;
+				float dp = normal.x * light_direction.x + normal.y * light_direction.y + normal.z * light_direction.z;
 
-				//rgba c = GetColor(dp);
+				rgba c = GetColor(dp);
 
-
+				triViewed.p[0] = Matrix_MultiplyVector(matView, triTransformed.p[0]);
+				triViewed.p[1] = Matrix_MultiplyVector(matView, triTransformed.p[1]);
+				triViewed.p[2] = Matrix_MultiplyVector(matView, triTransformed.p[2]);
+				
 				// Project triangles from 3D --> 2D
-				triProjected.p[0] = Matrix_MultiplyVector(matProj, triTransformed.p[0]);
-				triProjected.p[1] = Matrix_MultiplyVector(matProj, triTransformed.p[1]);
-				triProjected.p[2] = Matrix_MultiplyVector(matProj, triTransformed.p[2]);
+				triProjected.p[0] = Matrix_MultiplyVector(matProj, triViewed.p[0]);
+				triProjected.p[1] = Matrix_MultiplyVector(matProj, triViewed.p[1]);
+				triProjected.p[2] = Matrix_MultiplyVector(matProj, triViewed.p[2]);
 
 				// do this normalizing
 				triProjected.p[0] = Vector_Div(triProjected.p[0], triProjected.p[0].w);
@@ -358,7 +388,7 @@ int main(int argc, char** argv) {
 		{
 			// Rasterize triangle
 			SDL_SetRenderDrawColor(renderer, 255, 0, 255, 255);
-			DrawTriangle(renderer, triProjected.p[0].x, triProjected.p[0].y, triProjected.p[1].x, triProjected.p[1].y,
+			FillTriangle(renderer, triProjected.p[0].x, triProjected.p[0].y, triProjected.p[1].x, triProjected.p[1].y,
 				triProjected.p[2].x, triProjected.p[2].y);
 
 
