@@ -214,9 +214,9 @@ int main(int argc, char** argv) {
 					triProjected.p[2].x, triProjected.p[2].y, a);
 
 				drawFlag = false;
-				SDL_RenderPresent(renderer);
+				
 			}
-
+			//SDL_RenderPresent(renderer);
 			// Draw Wall------------------------------------------------------------------------------------
 			for (auto tri : wall.tris)
 			{
@@ -305,9 +305,9 @@ int main(int argc, char** argv) {
 					triProjected.p[2].x, triProjected.p[2].y, a);
 
 				drawFlag = false;
-				SDL_RenderPresent(renderer);
+				
 			}
-			
+			//SDL_RenderPresent(renderer);
 			// Draw Dhara-----------------------------------------------------------------------------------
 			for (auto tri : meshCube.tris)
 			{
@@ -402,9 +402,9 @@ int main(int argc, char** argv) {
 					triProjected.p[2].x, triProjected.p[2].y, triProjected.col);
 
 				drawFlag = false;
-				SDL_RenderPresent(renderer);
+				
 			}
-
+			//SDL_RenderPresent(renderer);
 			// Draw Water-----------------------------------------------------------------------------------
 			for (auto tri : water.tris)
 			{
@@ -493,9 +493,9 @@ int main(int argc, char** argv) {
 					triProjected.p[2].x, triProjected.p[2].y, a);
 
 				drawFlag = false;
-				SDL_RenderPresent(renderer);
+				
 			}
-
+			SDL_RenderPresent(renderer);
 		}
 
 	}
